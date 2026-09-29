@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Formatação de Roteiros de PG - IBG</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap');
+*{box-sizing:border-box}
+body{font-family:'Figtree',sans-serif;margin:0;padding:20px;background:#f0f2f5;color:#333}
+.app-container{display:flex;gap:20px;max-width:1600px;margin:0 auto}
+.input-panel{flex:1;background:#fff;padding:24px;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:16px;height:calc(100vh - 40px);position:sticky;top:20px}
+.preview-panel{flex:1.2;background:#525659;padding:30px;border-radius:10px;overflow-y:auto;max-height:calc(100vh - 40px);display:flex;flex-direction:column;align-items:center}
+textarea{width:100%;flex:1;padding:14px;border:1px solid #ccc;border-radius:8px;font-family:'Figtree',sans-serif;font-size:24px;resize:none;line-height:1.5}
+.btn-print{background:#0066cc;color:#fff;border:0;padding:14px 20px;font-size:16px;font-weight:600;border-radius:8px;cursor:pointer}.btn-print:hover{background:#0052a3}
+.document-page{width:210mm;height:297mm;min-height:297mm;position:relative;overflow:hidden;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.25);font-family:'Figtree',sans-serif;line-height:1.5;color:#222;word-wrap:break-word;margin-bottom:20px;isolation:isolate}
+.page-content{position:relative;z-index:2;width:100%;height:100%;padding:20mm 15mm}
+.paper-bg{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.document-page h1{font-size:60pt;font-weight:1000;color:#1a365d;border-bottom:3px solid #d7dd3f;padding-bottom:12px;margin:20px 0 24px}
+.document-page h2{font-size:40pt;color:#2b6cb0;border-bottom:2px solid #e2e8f0;padding-bottom:8px;margin:20px 0 18px}
+.document-page h3{font-size:40pt;color:#2d3748;margin:24px 0 12px}
+.document-page p,.document-page li{font-size:34pt;color:#4a5568;line-height:1.4}
+.document-page ul,.document-page ol{padding-left:30px}
+.document-page blockquote{margin:20px 0;padding:16px 20px;background:rgba(247,250,252,.94);border-left:8px solid #3182ce;border-radius:4px;font-size:26pt;color:#2d3748}
+.document-page blockquote p{font-size:26pt;margin:0}
+.pdf-page{break-after:page;page-break-after:always}.pdf-page:last-child{break-after:auto;page-break-after:auto}
+.question-block{margin:0}.question-block .tip{margin-top:16px}
+.icebreaker-text{font-size:34pt!important;line-height:1.4;margin-top:20px}
+.music-block{margin:4px 0 24px}.music-title{font-size:34pt;color:#4a5568;line-height:1.35;margin:0 0 5px;font-weight:600}
+.youtube-player{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;background:#ff0000;color:#fff!important;text-decoration:none!important;font-size:18pt;font-weight:700;line-height:1;white-space:nowrap}
+.youtube-player .play{display:inline-flex;align-items:center;justify-content:center;width:1.15em;height:1.15em;border-radius:50%;background:#fff;color:#ff0000;font-size:.65em}
+.youtube-space{height:12px}
+@media print{
+ @page{size:A4 portrait;margin:0}
+ html,body{width:210mm!important;margin:0!important;padding:0!important;background:#fff!important}
+ .input-panel{display:none!important}.app-container{display:block!important;margin:0!important;padding:0!important}.preview-panel{background:#fff!important;padding:0!important;margin:0!important;overflow:visible!important;max-height:none!important}
+ .document-page{width:210mm!important;height:297mm!important;min-height:297mm!important;margin:0!important;box-shadow:none!important;overflow:hidden!important}
+ .page-content{width:210mm!important;height:297mm!important;padding:20mm 15mm!important}
+ .paper-bg{display:block!important;visibility:visible!important}
+ .pdf-page{break-after:page!important;page-break-after:always!important}.pdf-page:last-child{break-after:auto!important;page-break-after:auto!important}
+ h1,h2,h3{break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important;page-break-inside:avoid!important}
+ .question-block,.music-block,blockquote{break-inside:avoid!important;page-break-inside:avoid!important}
+ p,li{break-inside:auto!important;page-break-inside:auto!important}
+}
+</style>
+</head>
+<body>
+<div class="app-container">
+  <div class="input-panel">
+    <h2>Formatação de Roteiros de PGs - IBG</h2>
+    <div><strong>Cole abaixo o texto do seu roteiro:</strong></div>
+    <textarea id="textInput" placeholder="# Título\nSeu título aqui\n\n# Introdução\nTexto...\n\n# Perguntas\n### Pergunta 1\nDica: ...\n\n### Pergunta 2\nDica: ...\n\n# Quebra-gelo\nPrimeiro...\n\nSegundo...\n\n# Louvor\n### Nome da música\nhttps://youtube.com/...\n"></textarea>
+    <button class="btn-print" type="button" onclick="saveAsPdf()">Salvar como PDF</button>
+  </div>
+  <div class="preview-panel"><div id="output"></div></div>
+</div>
+<script>
+const textInput=document.getElementById('textInput');
+const output=document.getElementById('output');
+
+// Fundo incorporado no próprio HTML: não depende de PNGTree, internet ou CORS.
+const BG_SVG=`<svg xmlns="http://www.w3.org/2000/svg" width="794" height="1123" viewBox="0 0 794 1123"><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff6b9a"/><stop offset=".45" stop-color="#ffd166"/><stop offset="1" stop-color="#54c7ec"/></linearGradient><filter id="b"><feGaussianBlur stdDeviation="18"/></filter></defs><rect width="794" height="1123" fill="#fff"/><path d="M0 0H794V55C650 28 570 92 450 55S210 20 0 70Z" fill="url(#g1)" opacity=".72"/><path d="M0 1123H794V1060c-135 28-210-46-340-12s-250 3-454 42Z" fill="url(#g1)" opacity=".72"/><path d="M0 0V1123" stroke="#ff6b9a" stroke-width="34" opacity=".42"/><path d="M794 0V1123" stroke="#54c7ec" stroke-width="34" opacity=".42"/><g filter="url(#b)" opacity=".28"><circle cx="80" cy="100" r="70" fill="#7b61ff"/><circle cx="715" cy="190" r="80" fill="#00c2a8"/><circle cx="90" cy="990" r="75" fill="#ff9f43"/><circle cx="700" cy="1010" r="90" fill="#ff5c8a"/></g></svg>`;
+const BG_DATA='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(BG_SVG);
+
+function newPage(){
+ const page=document.createElement('div'); page.className='document-page pdf-page';
+ const bg=document.createElement('img'); bg.className='paper-bg'; bg.src=BG_DATA; bg.alt='';
+ const content=document.createElement('div'); content.className='page-content';
+ page.append(bg,content); output.appendChild(page); return content;
+}
+function htmlFor(text){return marked.parse(text||'');}
+function cleanSectionName(s){return s.replace(/:$/,'').trim().toLowerCase();}
+function splitSections(raw){
+ const lines=raw.replace(/\r/g,'').split('\n'); const sections=[]; let current=null;
+ for(const line of lines){
+   const m=line.match(/^#\s+(.+?)\s*$/);
+   if(m){ if(current) sections.push(current); current={title:m[1].trim(),lines:[]}; }
+   else if(current) current.lines.push(line);
+ }
+ if(current) sections.push(current); return sections;
+}
+function splitQuestions(lines){
+ const blocks=[]; let current=null;
+ for(const line of lines){
+   const m=line.match(/^###\s+(.+?)\s*$/);
+   if(m){ if(current) blocks.push(current); current={title:m[1].trim(),lines:[]}; }
+   else if(current) current.lines.push(line);
+ }
+ if(current) blocks.push(current);
+ return blocks;
+}
+function tipToHtml(lines){
+ let arr=lines.slice(); const idx=arr.findIndex(x=>/^\s*Dica\s*:/i.test(x));
+ if(idx<0) return {main:arr,tip:null};
+ const before=arr.slice(0,idx), first=arr[idx].replace(/^\s*Dica\s*:\s*/i,'').trim();
+ const after=arr.slice(idx+1); const tip=[first,...after].join('\n').trim();
+ return {main:before,tip:tip?`<blockquote class="tip"><p><strong>Dica:</strong> ${escapeHtml(tip)}</p></blockquote>`:null};
+}
+function escapeHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function contentHeight(content){
+  return content.clientHeight;
+}
+
+function overflows(content){
+  return content.scrollHeight > content.clientHeight + 2;
+}
+
+function removeLastNode(content){
+  const node=content.lastElementChild;
+  if(node) content.removeChild(node);
+  return node;
+}
+
+// Adiciona um bloco inteiro quando ele cabe. Se não couber, cria uma continuação.
+// Se o próprio bloco for maior que uma página, seus filhos podem continuar em folhas seguintes.
+function appendParagraphSmart(content, node){
+  // Parágrafos longos podem ser divididos. Isso evita que o texto seja
+  // escondido pelo limite da folha e permite que o início fique junto do título.
+  const text = node.textContent || '';
+  const words = text.split(/(\s+)/);
+  let current = content;
+  let part = document.createElement('p');
+  part.style.marginTop = node.style.marginTop;
+  part.style.marginBottom = node.style.marginBottom;
+  current.appendChild(part);
+
+  for(const token of words){
+    const candidate = part.textContent + token;
+    part.textContent = candidate;
+    if(overflows(current)){
+      part.textContent = part.textContent.slice(0, part.textContent.length - token.length);
+      if(!part.textContent.trim()){
+        current.removeChild(part);
+        current = newPage();
+        part = document.createElement('p');
+        current.appendChild(part);
+        part.textContent = token.trimStart();
+      } else {
+        current = newPage();
+        part = document.createElement('p');
+        current.appendChild(part);
+        part.textContent = token.trimStart();
+      }
+    }
+  }
+  return current;
+}
+
+function appendSmart(content, node){
+  content.appendChild(node);
+  if(!overflows(content)) return content;
+
+  content.removeChild(node);
+
+  // Um parágrafo pode ocupar mais de uma folha e, portanto, deve ser
+  // repartido em vez de simplesmente desaparecer.
+  if(node.tagName === 'P'){
+    return appendParagraphSmart(content, node);
+  }
+
+  // Para blocos comuns, preservamos a unidade e iniciamos uma nova folha.
+  const next=newPage();
+  next.appendChild(node);
+
+  // Se o bloco tiver vários filhos e ainda ultrapassar a folha,
+  // tentamos distribuí-los individualmente.
+  if(overflows(next) && node.children && node.children.length>1){
+    const children=Array.from(node.children);
+    next.removeChild(node);
+    let holder=next;
+    for(const child of children){
+      holder.appendChild(child);
+      if(overflows(holder)){
+        holder.removeChild(child);
+        holder=newPage();
+        holder.appendChild(child);
+      }
+    }
+  }
+
+  return next;
+}
+
+function appendHtmlSmart(content, html){
+  const holder=document.createElement('div');
+  holder.innerHTML=html;
+  let current=content;
+  while(holder.firstElementChild){
+    const node=holder.firstElementChild;
+    holder.removeChild(node);
+    current=appendSmart(current,node);
+  }
+  return current;
+}
+
+function createHeading(tag,text){
+  const el=document.createElement(tag);
+  el.textContent=text;
+  return el;
+}
+
+function questionNodes(block){
+  const nodes=[];
+  nodes.push(createHeading('h3',block.title));
+  const t=tipToHtml(block.lines);
+  if(t.main.join('\n').trim()){
+    const holder=document.createElement('div');
+    holder.innerHTML=htmlFor(t.main.join('\n'));
+    while(holder.firstElementChild) nodes.push(holder.firstElementChild);
+  }
+  if(t.tip){
+    const tip=document.createElement('div');
+    tip.innerHTML=t.tip;
+    nodes.push(tip.firstElementChild);
+  }
+  return nodes;
+}
+
+function renderQuestions(section){
+  const blocks=splitQuestions(section.lines);
+  if(!blocks.length){
+    const c=newPage();
+    c.appendChild(createHeading('h1','Perguntas'));
+    appendHtmlSmart(c,htmlFor(section.lines.join('\n')));
+    return;
+  }
+
+  let current=null;
+  blocks.forEach((b,i)=>{
+    // Cada pergunta começa intencionalmente em uma nova folha.
+    current=newPage();
+    if(i===0) current.appendChild(createHeading('h1','Perguntas'));
+
+    const nodes=questionNodes(b);
+    for(const node of nodes){
+      // O título da pergunta nunca fica sozinho no fim da página.
+      if(node.tagName==='H3'){
+        current.appendChild(node);
+        if(overflows(current)){
+          current.removeChild(node);
+          current=newPage();
+          current.appendChild(node);
+        }
+      }else{
+        current=appendSmart(current,node);
+      }
+    }
+  });
+}
+
+function splitIcebreakers(lines){
+  return lines.join('\n').split(/\n\s*\n/).map(x=>x.trim()).filter(Boolean);
+}
+
+function renderIcebreakers(section){
+  const items=splitIcebreakers(section.lines);
+  if(!items.length){const c=newPage();c.appendChild(createHeading('h1','Quebra-gelo'));return;}
+
+  items.forEach((item,i)=>{
+    let current=newPage();
+    if(i===0) current.appendChild(createHeading('h1','Quebra-gelo'));
+
+    const holder=document.createElement('div');
+    holder.className='icebreaker-text';
+    holder.innerHTML=htmlFor(item);
+    while(holder.firstElementChild){
+      const node=holder.firstElementChild;
+      holder.removeChild(node);
+      current=appendSmart(current,node);
+    }
+  });
+}
+
+function youtubeTarget(url){
+  try{
+    const u=new URL(url);
+    if(u.hostname.includes('google.') && u.searchParams.has('q')){
+      let q=u.searchParams.get('q');
+      for(let i=0;i<3;i++){try{q=decodeURIComponent(q)}catch(e){break}}
+      const m=q.match(/https?:\/\/(?:www\.)?youtube\.com\/results\?search_query=([^&\s]+)/i);
+      if(m) return 'https://www.youtube.com/results?search_query='+m[1];
+    }
+    if(/youtube\.com|youtu\.be/i.test(u.hostname)) return url;
+  }catch(e){}
+  return url;
+}
+
+function renderLouvor(section){
+  const blocks=splitQuestions(section.lines);
+  let current=newPage();
+  current.appendChild(createHeading('h1','Louvor'));
+
+  blocks.forEach(b=>{
+    const wrapper=document.createElement('div');
+    wrapper.className='music-block';
+    const title=document.createElement('div');
+    title.className='music-title';
+    title.textContent=b.title;
+    wrapper.appendChild(title);
+
+    const urls=b.lines.map(x=>x.trim()).filter(x=>/^https?:\/\//i.test(x));
+    urls.forEach(raw=>{
+      const a=document.createElement('a');
+      a.className='youtube-player';
+      a.href=youtubeTarget(raw);
+      a.target='_blank';
+      a.rel='noopener noreferrer';
+      a.innerHTML='<span class="play">▶</span> Ouvir no YouTube';
+      wrapper.appendChild(a);
+      const sp=document.createElement('div');
+      sp.className='youtube-space';
+      wrapper.appendChild(sp);
+    });
+
+    // Cada música tenta ficar inteira; se não couber, vai para a próxima folha.
+    current=appendSmart(current,wrapper);
+  });
+}
+
+function renderNormal(section){
+  let current=newPage();
+  const title=createHeading('h1',section.title.replace(/:$/,''));
+  current.appendChild(title);
+
+  const holder=document.createElement('div');
+  holder.innerHTML=htmlFor(section.lines.join('\n'));
+  while(holder.firstElementChild){
+    const node=holder.firstElementChild;
+    holder.removeChild(node);
+    current=appendSmart(current,node);
+  }
+}
+
+function updatePreview(raw){
+ output.innerHTML=''; if(!raw.trim())return;
+ const sections=splitSections(raw);
+ if(!sections.length){const c=newPage();c.innerHTML=htmlFor(raw);return;}
+ for(const s of sections){const n=cleanSectionName(s.title); if(n==='perguntas')renderQuestions(s); else if(n==='quebra-gelo'||n==='quebra-gelos')renderIcebreakers(s); else if(n==='louvor'||n==='músicas'||n==='musicas')renderLouvor(s); else renderNormal(s);}
+}
+function saveAsPdf(){window.print();}
+textInput.addEventListener('input',e=>updatePreview(e.target.value));
+updatePreview(textInput.value||textInput.placeholder);
+</script>
+</body>
+</html>
