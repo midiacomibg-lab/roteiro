@@ -14,18 +14,23 @@ body{font-family:'Figtree',sans-serif;margin:0;padding:20px;background:#f0f2f5;c
 .input-panel{flex:1;background:#fff;padding:24px;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:16px;height:calc(100vh - 40px);position:sticky;top:20px;min-width:0}
 .preview-panel{flex:1.2;background:#525659;padding:30px;border-radius:10px;overflow-y:auto;overflow-x:hidden;max-height:calc(100vh - 40px);display:flex;flex-direction:column;align-items:center;min-width:0}
 .panel-header{display:flex;align-items:center;gap:14px;padding-bottom:4px}
-.panel-logo{width:74px;height:55px;object-fit:contain;object-position:center;flex:0 0 auto}
-.panel-title{margin:0;font-size:32px;line-height:1.15;color:#1a365d}
-.panel-subtitle{display:none}
-textarea{width:100%;flex:1;min-height:130px;max-height:260px;padding:14px;border:1px solid #ccc;border-radius:8px;font-family:'Figtree',sans-serif;font-size:14px;resize:none;line-height:14px}
+.panel-logo{width:92px;height:68px;object-fit:contain;object-position:center;flex:0 0 auto}
+.panel-title{margin:0;font-size:38px;line-height:1.15;color:#1a365d}
+.panel-subtitle{margin:0;color:#666;font-size:14px;line-height:1.4}
+textarea{width:100%;flex:1;min-height:180px;padding:14px;border:1px solid #ccc;border-radius:8px;font-family:'Figtree',sans-serif;font-size:14px;resize:none;line-height:14px}
 .btn-print{background:#00ff00;color:#000;border:0;padding:14px 20px;font-size:16px;font-weight:600;border-radius:8px;cursor:pointer}.btn-print:hover{background:#00e600}
-.instructions{font-size:14px;line-height:1.35;color:#333;margin:0}
-.instructions-title{font-size:16px;font-weight:700;margin:0 0 8px;color:#1a365d}
+.instructions{font-size:14px;line-height:1.45;color:#333;margin:0}
+.instructions-title{font-size:17px;font-weight:700;margin:0 0 10px;color:#1a365d}
 .instructions ol{margin:0;padding-left:22px}
 .instructions li{margin:0 0 8px}
 .instructions li:last-child{margin-bottom:0}
-.instructions li:nth-child(1),.instructions li:nth-child(2){display:inline-flex;vertical-align:top;flex-direction:column;width:calc(50% - 7px);margin-right:10px;margin-bottom:8px}.instructions li:nth-child(2){margin-right:0}
-.instruction-button{display:block;width:100%;margin-top:6px;padding:8px 10px;border:0;border-radius:7px;background:#1a365d;color:#fff;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;text-align:center;text-decoration:none}
+/* No computador, os dois primeiros passos ficam lado a lado, cada um com seu botão. */
+@media (min-width: 901px){
+  .instructions li:nth-child(1),.instructions li:nth-child(2){display:inline-flex;vertical-align:top;flex-direction:column;width:calc(50% - 7px);margin-right:10px;margin-bottom:8px}
+  .instructions li:nth-child(2){margin-right:0}
+}
+
+.instruction-button{display:block;width:100%;margin-top:7px;padding:10px 12px;border:0;border-radius:7px;background:#1a365d;color:#fff;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;text-align:center;text-decoration:none}
 .instruction-button:hover{opacity:.9}
 
 .document-page{width:210mm;height:297mm;min-height:297mm;position:relative;overflow:hidden;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.25);font-family:'Figtree',sans-serif;line-height:1.5;color:#222;word-wrap:break-word;margin-bottom:20px;isolation:isolate}
@@ -47,6 +52,7 @@ textarea{width:100%;flex:1;min-height:130px;max-height:260px;padding:14px;border
 .youtube-space{height:12px}
 .lyrics-stanza{white-space:pre-line;margin:0 0 20px;font-size:30pt!important;line-height:1.45!important;color:#4a5568}
 @media (max-width: 900px){
+  .instructions li:nth-child(1),.instructions li:nth-child(2){display:list-item;width:auto;margin-right:0}
   body{padding:10px}
   .app-container{display:flex;flex-direction:column;gap:14px;width:100%;max-width:none}
   .input-panel{width:100%;height:auto;min-height:0;position:relative;top:auto;padding:16px;gap:12px}
@@ -653,17 +659,22 @@ function fitPreviewPages(){
     page.style.marginBottom='';
   });
 
-  if(!isMobile) return;
-
   const available = Math.max(0, panel.clientWidth - 8);
   pages.forEach(page=>{
     const naturalWidth = page.getBoundingClientRect().width;
     const naturalHeight = page.getBoundingClientRect().height;
     if(!naturalWidth || !naturalHeight) return;
-    const scale = Math.min(1, available / naturalWidth);
+
+    // No desktop, o A4 é exibido menor para que as quatro margens
+    // fiquem visíveis sem precisar reduzir o zoom do navegador.
+    // No mobile, mantemos o comportamento que já estava funcionando.
+    const scale = isMobile
+      ? Math.min(1, available / naturalWidth)
+      : 0.75;
+
     page.style.transformOrigin='top center';
     page.style.transform=`scale(${scale})`;
-    page.style.marginBottom=`-${naturalHeight * (1-scale) + 14}px`;
+    page.style.marginBottom=`-${naturalHeight * (1-scale) + (isMobile ? 14 : 20)}px`;
   });
 }
 
