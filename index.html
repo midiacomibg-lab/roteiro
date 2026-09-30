@@ -16,7 +16,7 @@ body{font-family:'Figtree',sans-serif;margin:0;padding:20px;background:#f0f2f5;c
 .panel-logo{width:92px;height:68px;object-fit:contain;object-position:center;flex:0 0 auto}
 .panel-title{margin:0;font-size:38px;line-height:1.15;color:#1a365d}
 .panel-subtitle{margin:0;color:#666;font-size:14px;line-height:1.4}
-textarea{width:100%;flex:1;min-height:180px;padding:14px;border:1px solid #ccc;border-radius:8px;font-family:'Figtree',sans-serif;font-size:14px;resize:none;line-height:10px}
+textarea{width:100%;flex:1;min-height:180px;padding:14px;border:1px solid #ccc;border-radius:8px;font-family:'Figtree',sans-serif;font-size:14px;resize:none;line-height:14px}
 .btn-print{background:#0066cc;color:#fff;border:0;padding:14px 20px;font-size:16px;font-weight:600;border-radius:8px;cursor:pointer}.btn-print:hover{background:#0052a3}
 .document-page{width:210mm;height:297mm;min-height:297mm;position:relative;overflow:hidden;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.25);font-family:'Figtree',sans-serif;line-height:1.5;color:#222;word-wrap:break-word;margin-bottom:20px;isolation:isolate}
 .page-content{position:relative;z-index:2;width:100%;height:calc(100% - 30mm);padding:20mm 15mm 0}
@@ -35,6 +35,7 @@ textarea{width:100%;flex:1;min-height:180px;padding:14px;border:1px solid #ccc;b
 .youtube-player{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;background:#ff0000;color:#fff!important;text-decoration:none!important;font-size:18pt;font-weight:700;line-height:1;white-space:nowrap}
 .youtube-player .play{display:inline-flex;align-items:center;justify-content:center;width:1.15em;height:1.15em;border-radius:50%;background:#fff;color:#ff0000;font-size:.65em}
 .youtube-space{height:12px}
+.lyrics-stanza{white-space:pre-line;margin:0 0 20px;font-size:30pt!important;line-height:1.45!important;color:#4a5568}
 @media (max-width: 900px){
   body{padding:10px}
   .app-container{display:flex;flex-direction:column;gap:14px;width:100%;max-width:none}
@@ -128,14 +129,20 @@ Dica: [Dica]&#10;&#10;
 
 # 🎶 Letras&#10;&#10;
 
-1.[Música]&#10;
+## 1.[Música]&#10;
 [Letra]&#10;&#10;
 
-2.[Música]&#10;
+--- quebra de página ---&#10;&#10;
+
+## 2.[Música]&#10;
 [Letra]&#10;&#10;
 
-3.[Música]&#10;
-[Letra]&#10;&#10;"></textarea>
+--- quebra de página ---&#10;&#10;
+
+## 3.[Música]&#10;
+[Letra]&#10;&#10;
+
+"></textarea>
     <button class="btn-print" type="button" onclick="saveAsPdf()">Salvar como PDF</button>
   </div>
   <div class="preview-panel"><div id="output"></div></div>
@@ -375,6 +382,20 @@ function renderIcebreakers(section){
     }
   });
 }
+function cleanYoutubeInput(line){
+  const text=(line||'').trim();
+
+  // Aceita o formato Markdown: [https://...](https://...)
+  const markdown=text.match(/^\[([^\]]+)\]\((https?:\/\/[^)]+)\)$/i);
+  if(markdown) return markdown[2].trim();
+
+  // Também aceita URL simples, inclusive quando vier acompanhada de pontuação.
+  const raw=text.match(/https?:\/\/[^\s<>]+/i);
+  if(raw) return raw[0].replace(/[.,;]+$/,'');
+
+  return null;
+}
+
 function youtubeTarget(url){
   try{
     const u=new URL(url);
@@ -387,6 +408,19 @@ function youtubeTarget(url){
     if(/youtube\.com|youtu\.be/i.test(u.hostname)) return url;
   }catch(e){}
   return url;
+}
+
+function openYoutubeLink(url){
+  // Navegação por gesto do usuário, sem target=_blank. Isso é mais compatível
+  // com Safari/iOS, inclusive quando esta página estiver dentro de um iframe.
+  try{
+    if(window.top && window.top !== window){
+      window.top.location.href=url;
+      return false;
+    }
+  }catch(e){}
+  window.location.href=url;
+  return false;
 }
 
 function splitSongs(lines){
@@ -405,6 +439,58 @@ function splitSongs(lines){
   return splitQuestions(lines);
 }
 
+function splitLyrics(lines){
+  const text=lines.join('\n').replace(/\r/g,'');
+  const blocks=[];
+  const re=/(?:^|\n)\s*##\s*(\d+)\.\s*(.*?)\s*\n([\s\S]*?)(?=\n\s*---\s*quebra\s+de\s+p[áa]gina\s*---\s*\n|\n\s*##\s*\d+\.\s*|$)/gi;
+  let m;
+  while((m=re.exec(text))){
+    const title=m[2].trim();
+    const body=m[3].trim();
+    if(title || body) blocks.push({number:m[1],title,body});
+  }
+  if(blocks.length) return blocks;
+
+  const fallback=/(?:^|\n)\s*(\d+)\.\s*([^\n]+)\n([\s\S]*?)(?=\n\s*\d+\.\s*[^\n]+\n|$)/g;
+  while((m=fallback.exec(text))){
+    const title=m[2].trim();
+    const body=m[3].trim();
+    if(title || body) blocks.push({number:m[1],title,body});
+  }
+  return blocks;
+}
+
+function renderLetras(section){
+  const blocks=splitLyrics(section.lines);
+  if(!blocks.length){
+    const c=newPage();
+    c.appendChild(createHeading('h1','🎶 Letras'));
+    appendHtmlSmart(c,htmlFor(section.lines.join('\n')));
+    return;
+  }
+
+  blocks.forEach((b,i)=>{
+    let current=newPage();
+    if(i===0) current.appendChild(createHeading('h1','🎶 Letras'));
+
+    const title=createHeading('h2',`${b.number}. ${b.title}`);
+    current.appendChild(title);
+    if(overflows(current)){
+      current.removeChild(title);
+      current=newPage();
+      current.appendChild(title);
+    }
+
+    const stanzas=b.body.split(/\n\s*\n/).map(x=>x.trim()).filter(Boolean);
+    for(const stanza of stanzas){
+      const p=document.createElement('p');
+      p.className='lyrics-stanza';
+      p.textContent=stanza;
+      current=appendSmart(current,p);
+    }
+  });
+}
+
 function renderLouvor(section){
   const blocks=splitSongs(section.lines);
   let current=newPage();
@@ -418,13 +504,18 @@ function renderLouvor(section){
     title.textContent=b.title;
     wrapper.appendChild(title);
 
-    const urls=b.lines.map(x=>x.trim()).filter(x=>/^https?:\/\//i.test(x));
+    const urls=b.lines.map(cleanYoutubeInput).filter(Boolean);
     urls.forEach(raw=>{
+      const href=youtubeTarget(raw);
       const a=document.createElement('a');
       a.className='youtube-player';
-      a.href=youtubeTarget(raw);
-      a.target='_blank';
-      a.rel='noopener noreferrer';
+      a.href=href;
+      a.setAttribute('role','button');
+      a.setAttribute('aria-label','Assistir no YouTube');
+      a.onclick=function(event){
+        event.preventDefault();
+        return openYoutubeLink(this.href);
+      };
       a.innerHTML='<span class="play">▶</span> Assistir no YouTube';
       wrapper.appendChild(a);
       const sp=document.createElement('div');
@@ -453,7 +544,7 @@ function updatePreview(raw){
  output.innerHTML=''; if(!raw.trim())return;
  const sections=splitSections(raw);
  if(!sections.length){const c=newPage();c.innerHTML=htmlFor(raw);return;}
- for(const s of sections){const n=cleanSectionName(s.title); if(n==='perguntas')renderQuestions(s); else if(n==='quebra gelo'||n==='quebra gelos')renderIcebreakers(s); else if(n==='louvor'||n==='musicas')renderLouvor(s); else renderNormal(s);}
+ for(const s of sections){const n=cleanSectionName(s.title); if(n==='perguntas')renderQuestions(s); else if(n==='quebra gelo'||n==='quebra gelos')renderIcebreakers(s); else if(n==='louvor'||n==='musicas')renderLouvor(s); else if(n==='letras'||n==='letras das musicas'||n==='letras das músicas')renderLetras(s); else renderNormal(s);}
 }
 function fitPreviewPages(){
   const isMobile = window.matchMedia('(max-width: 900px)').matches;
