@@ -58,6 +58,11 @@ textarea{width:100%;flex:1;min-height:180px;padding:14px;border:1px solid #ccc;b
   textarea{height:250px;min-height:250px}
   .preview-panel{padding:8px 2px 16px}
 }
+.document-header-info{margin:0 0 10mm}
+.document-main-title{font-size:60pt!important;line-height:1.15!important;white-space:normal!important;margin:20px 0 24px!important;border-bottom:3px solid #d7dd3f!important;padding-bottom:12px!important}
+.document-week-label{font-size:40pt!important;line-height:1.15!important;color:#2b6cb0;margin:20px 0 18px!important;padding-bottom:8px!important}
+.document-week-value{font-size:34pt!important;line-height:1.4!important;margin:0 0 24px!important;font-weight:600;color:#4a5568}
+.document-theme-heading{font-size:60pt!important;line-height:1.15!important;margin:20px 0 24px!important}
 @media print{
  @page{size:A4 portrait;margin:0}
  html,body{width:210mm!important;margin:0!important;padding:0!important;background:#fff!important}
@@ -83,7 +88,7 @@ textarea{width:100%;flex:1;min-height:180px;padding:14px;border:1px solid #ccc;b
       </div>
     </div>
     <div><strong>Cole abaixo o texto do seu roteiro:</strong></div>
-    <textarea id="textInput" placeholder="# 📝 Tema&#10;
+    <textarea id="textInput" placeholder="# Roteiro de PGs&#10;&#10;## Semana&#10;00 de mês à 00 de mês&#10;&#10;# 📝 Tema&#10;
 [Título]&#10;&#10;
 
 # 📖 Texto Bíblico&#10;
@@ -540,10 +545,76 @@ function renderNormal(section){
   }
 }
 
+function parseWeekInfo(lines){
+  const arr=lines.slice();
+  const idx=arr.findIndex(x=>/^##\s+Semana\s*$/i.test(x.trim()));
+  if(idx<0) return {week:null,remaining:arr};
+  let j=idx+1;
+  while(j<arr.length && !arr[j].trim()) j++;
+  const week=j<arr.length ? arr[j].trim() : '';
+  const remaining=arr.slice(0,idx).concat(arr.slice(j+1));
+  return {week,remaining};
+}
+
+function renderHeaderAndTheme(headerSection, themeSection){
+  const current=newPage();
+
+  const header=document.createElement('div');
+  header.className='document-header-info';
+
+  const mainTitle=createHeading('h1',headerSection.title.replace(/:$/,'').trim().toLowerCase()==='roteiro de pgs' ? 'Roteiro de PGs' : headerSection.title.replace(/:$/,''));
+  mainTitle.className='document-main-title';
+  header.appendChild(mainTitle);
+
+  const info=parseWeekInfo(headerSection.lines);
+  if(info.week){
+    const weekLabel=createHeading('h2','Semana');
+    weekLabel.className='document-week-label';
+    header.appendChild(weekLabel);
+
+    const weekValue=document.createElement('p');
+    weekValue.className='document-week-value';
+    weekValue.textContent=info.week;
+    header.appendChild(weekValue);
+  }
+
+  current.appendChild(header);
+
+  if(themeSection){
+    const themeTitle=createHeading('h1',themeSection.title.replace(/:$/,''));
+    themeTitle.className='document-theme-heading';
+    current.appendChild(themeTitle);
+
+    const holder=document.createElement('div');
+    holder.innerHTML=htmlFor(themeSection.lines.join('\n'));
+    while(holder.firstElementChild){
+      const node=holder.firstElementChild;
+      holder.removeChild(node);
+      current.appendChild(node);
+    }
+  }
+}
+
 function updatePreview(raw){
  output.innerHTML=''; if(!raw.trim())return;
  const sections=splitSections(raw);
  if(!sections.length){const c=newPage();c.innerHTML=htmlFor(raw);return;}
+
+ // Cabeçalho especial: "Roteiro de Pequenos Grupos IBG" + "Semana" + tema
+ const firstName=cleanSectionName(sections[0].title);
+ if((firstName==='roteiro de pgs' || firstName==='roteiro de pequenos grupos ibg') && sections.length>1 && cleanSectionName(sections[1].title)==='tema'){
+   renderHeaderAndTheme(sections[0],sections[1]);
+   sections.slice(2).forEach(s=>{
+     const n=cleanSectionName(s.title);
+     if(n==='perguntas')renderQuestions(s);
+     else if(n==='quebra gelo'||n==='quebra gelos')renderIcebreakers(s);
+     else if(n==='louvor'||n==='musicas')renderLouvor(s);
+     else if(n==='letras'||n==='letras das musicas'||n==='letras das músicas')renderLetras(s);
+     else renderNormal(s);
+   });
+   return;
+ }
+
  for(const s of sections){const n=cleanSectionName(s.title); if(n==='perguntas')renderQuestions(s); else if(n==='quebra gelo'||n==='quebra gelos')renderIcebreakers(s); else if(n==='louvor'||n==='musicas')renderLouvor(s); else if(n==='letras'||n==='letras das musicas'||n==='letras das músicas')renderLetras(s); else renderNormal(s);}
 }
 function fitPreviewPages(){
