@@ -14,9 +14,9 @@ body{font-family:'Figtree',sans-serif;margin:0;padding:20px;background:#f0f2f5;c
 .preview-panel{flex:1.2;background:#525659;padding:30px;border-radius:10px;overflow-y:auto;overflow-x:hidden;max-height:calc(100vh - 40px);display:flex;flex-direction:column;align-items:center;min-width:0}
 .panel-header{display:flex;align-items:center;gap:14px;padding-bottom:4px}
 .panel-logo{width:92px;height:68px;object-fit:contain;object-position:center;flex:0 0 auto}
-.panel-title{margin:0;font-size:24px;line-height:1.15;color:#1a365d}
+.panel-title{margin:0;font-size:38px;line-height:1.15;color:#1a365d}
 .panel-subtitle{margin:0;color:#666;font-size:14px;line-height:1.4}
-textarea{width:100%;flex:1;min-height:180px;padding:14px;border:1px solid #ccc;border-radius:8px;font-family:'Figtree',sans-serif;font-size:14px;resize:none;line-height:1.5}
+textarea{width:100%;flex:1;min-height:180px;padding:14px;border:1px solid #ccc;border-radius:8px;font-family:'Figtree',sans-serif;font-size:14px;resize:none;line-height:10px}
 .btn-print{background:#0066cc;color:#fff;border:0;padding:14px 20px;font-size:16px;font-weight:600;border-radius:8px;cursor:pointer}.btn-print:hover{background:#0052a3}
 .document-page{width:210mm;height:297mm;min-height:297mm;position:relative;overflow:hidden;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.25);font-family:'Figtree',sans-serif;line-height:1.5;color:#222;word-wrap:break-word;margin-bottom:20px;isolation:isolate}
 .page-content{position:relative;z-index:2;width:100%;height:calc(100% - 30mm);padding:20mm 15mm 0}
@@ -82,7 +82,60 @@ textarea{width:100%;flex:1;min-height:180px;padding:14px;border:1px solid #ccc;b
       </div>
     </div>
     <div><strong>Cole abaixo o texto do seu roteiro:</strong></div>
-    <textarea id="textInput" placeholder="# Título\nSeu título aqui\n\n# Introdução\nTexto...\n\n# Perguntas\n### Pergunta 1\nDica: ...\n\n### Pergunta 2\nDica: ...\n\n# Quebra-gelo\nPrimeiro...\n\nSegundo...\n\n# Louvor\n### Nome da música\nhttps://youtube.com/...\n"></textarea>
+    <textarea id="textInput" placeholder="# 📝 Tema&#10;
+[Título]&#10;&#10;
+
+# 📖 Texto Bíblico&#10;
+[Referência + texto por extenso]&#10;&#10;
+
+# ▶️ Introdução&#10;
+[Texto]&#10;&#10;
+
+# ❓ Perguntas&#10;
+### 1.[Pergunta]&#10;
+Dica: [Dica]&#10;&#10;
+  
+### 2.[Pergunta]&#10;
+Dica: [Dica]&#10;&#10;
+
+### 3.[Pergunta]&#10;
+Dica: [Dica]&#10;&#10;
+
+# ❗ Conclusão&#10;
+[Texto]&#10;&#10;
+
+# 🥶 Quebra-gelo&#10;&#10;
+
+## Opção 1&#10;
+[título + texto]&#10;&#10;
+
+## Opção 2&#10;
+[título + texto]&#10;&#10;
+
+## Opção 3&#10;
+[título + texto]&#10;&#10;
+
+# 🎶 Louvor&#10;&#10;
+ 
+1.[Música]&#10;
+[Link]&#10;&#10;
+
+2.[Música]&#10;
+[Link]&#10;&#10;
+
+3.[Música]&#10;
+[Link]&#10;&#10;
+
+# 🎶 Letras&#10;&#10;
+
+1.[Música]&#10;
+[Letra]&#10;&#10;
+
+2.[Música]&#10;
+[Letra]&#10;&#10;
+
+3.[Música]&#10;
+[Letra]&#10;&#10;"></textarea>
     <button class="btn-print" type="button" onclick="saveAsPdf()">Salvar como PDF</button>
   </div>
   <div class="preview-panel"><div id="output"></div></div>
